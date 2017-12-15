@@ -23,9 +23,6 @@ package eu.alebianco.air.extensions.expansion
 	import flash.external.ExtensionContext;
 	import flash.utils.getQualifiedClassName;
 
-	import mx.logging.ILogger;
-	import mx.logging.Log;
-
 	[Event(name="expansion_download_progress", type="eu.alebianco.air.extensions.expansion.events.DownloadProgressEvent")]
 	[Event(name="expansion_download_complete", type="eu.alebianco.air.extensions.expansion.events.DownloadCompleteEvent")]
 	[Event(name="expansion_download_status_change", type="eu.alebianco.air.extensions.expansion.events.DownloadStatusChangeEvent")]
@@ -41,8 +38,6 @@ package eu.alebianco.air.extensions.expansion
 		private static const STATUS_EXPANSIONS:int = 2;
 		private static const STATUS_READY:int = STATUS_SECURITY | STATUS_EXPANSIONS;
 
-		private var logger:ILogger;
-
 		private static var instance:ExpansionManager;
 		private static var canBuild:Boolean;
 
@@ -50,6 +45,7 @@ package eu.alebianco.air.extensions.expansion
 		private var requiresMap:ExpansionMap;
 
 		private var status:int = STATUS_NONE;
+		private var className:String;
 
 		public static function getInstance():ExpansionManager
 		{
@@ -95,8 +91,7 @@ package eu.alebianco.air.extensions.expansion
 			status = STATUS_NONE;
 			requiresMap = new ExpansionMap();
 
-			var className:String = getQualifiedClassName(this).replace("::", ".");
-			logger = Log.getLogger(className);
+			className = getQualifiedClassName(this).replace("::", ".");
 		}
 
 		public function dispose():void {
@@ -123,27 +118,7 @@ package eu.alebianco.air.extensions.expansion
 
 		logStatusLevel function processStatusEvent(level:String, code:String):void
 		{
-			switch(level.toUpperCase())
-			{
-				case "INFO":
-					logger.info(code);
-					break;
-				case "DEBUG":
-					logger.debug(code);
-					break;
-				case "WARN":
-					logger.warn(code);
-					break;
-				case "ERROR":
-					logger.error(code);
-					break;
-				case "FATAL":
-					logger.fatal(code);
-					break;
-				default:
-					logger.debug("Level ("+level+") not found.");
-					break;
-			}
+			trace(level.toUpperCase() + ":" + this.className + ":" + code);
 		}
 		downloadStatusLevel function processStatusEvent(level:String, code:String):void
 		{
