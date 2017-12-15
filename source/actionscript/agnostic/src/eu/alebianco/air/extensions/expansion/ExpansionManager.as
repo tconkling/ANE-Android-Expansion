@@ -163,7 +163,7 @@ package eu.alebianco.air.extensions.expansion
 
 		public function setupMarketSecurity(key:String, salt:Vector.<int>):void
 		{
-			if (status & STATUS_SECURITY != 0)
+			if ((status & STATUS_SECURITY) != 0)
 			{
 				throw new IllegalOperationError("Operation already setup.");
 			}
