@@ -16,16 +16,16 @@ package eu.alebianco.air.extensions.expansion
 	import eu.alebianco.air.extensions.expansion.vo.DownloadState;
 	import eu.alebianco.air.extensions.expansion.vo.ProgressInfo;
 	import eu.alebianco.core.IDisposable;
-	
+
 	import flash.errors.IllegalOperationError;
 	import flash.events.EventDispatcher;
 	import flash.events.StatusEvent;
 	import flash.external.ExtensionContext;
 	import flash.utils.getQualifiedClassName;
-	
+
 	import mx.logging.ILogger;
 	import mx.logging.Log;
-	
+
 	[Event(name="expansion_download_progress", type="eu.alebianco.air.extensions.expansion.events.DownloadProgressEvent")]
 	[Event(name="expansion_download_complete", type="eu.alebianco.air.extensions.expansion.events.DownloadCompleteEvent")]
 	[Event(name="expansion_download_status_change", type="eu.alebianco.air.extensions.expansion.events.DownloadStatusChangeEvent")]
@@ -35,22 +35,22 @@ package eu.alebianco.air.extensions.expansion
 	public final class ExpansionManager extends EventDispatcher implements IDisposable
 	{
 		private static const EXTENSION_ID:String = "eu.alebianco.air.extensions.expansion";
-		
+
 		private static const STATUS_NONE:int = 0;
 		private static const STATUS_SECURITY:int = 1;
 		private static const STATUS_EXPANSIONS:int = 2;
 		private static const STATUS_READY:int = STATUS_SECURITY | STATUS_EXPANSIONS;
-		
+
 		private var logger:ILogger;
-		
+
 		private static var instance:ExpansionManager;
 		private static var canBuild:Boolean;
-		
+
 		private var context:ExtensionContext;
 		private var requiresMap:ExpansionMap;
-		
+
 		private var status:int = STATUS_NONE;
-		
+
 		public static function getInstance():ExpansionManager
 		{
 			if (!instance)
@@ -61,11 +61,11 @@ package eu.alebianco.air.extensions.expansion
 			}
 			return instance;
 		}
-		
+
 		public static function isSupported():Boolean
 		{
 			var supported:Boolean;
-			
+
 			try
 			{
 				getInstance();
@@ -75,44 +75,44 @@ package eu.alebianco.air.extensions.expansion
 			{
 				supported = false;
 			}
-			
+
 			return supported;
 		}
-		
+
 		public function ExpansionManager()
 		{
 			if (!canBuild)
 			{
 				throw new Error("Can't instantiate a Singleton class, use getInstance() to get a reference.");
 			}
-			
-			if (!context) 
+
+			if (!context)
 			{
 				context = ExtensionContext.createExtensionContext(EXTENSION_ID, null);
 				context.addEventListener(StatusEvent.STATUS, statusHandler);
 			}
-			
+
 			status = STATUS_NONE;
 			requiresMap = new ExpansionMap();
-			
+
 			var className:String = getQualifiedClassName(this).replace("::", ".");
 			logger = Log.getLogger(className);
 		}
-		
+
 		public function dispose():void {
-			
+
 			status = STATUS_NONE;
-			
+
 			context.removeEventListener(StatusEvent.STATUS, statusHandler);
 			context = null;
 			instance = null;
-			
+
 			requiresMap.dispose();
 			requiresMap = null;
 		}
-		
+
 		private function statusHandler(event:StatusEvent):void {
-			
+
 			var level:StatusLevel = StatusLevel.parseConstant(event.level);
 			if (level)
 			{
@@ -120,7 +120,7 @@ package eu.alebianco.air.extensions.expansion
 				ns::processStatusEvent(level.name, event.code);
 			}
 		}
-		
+
 		logStatusLevel function processStatusEvent(level:String, code:String):void
 		{
 			switch(level.toUpperCase())
@@ -159,7 +159,7 @@ package eu.alebianco.air.extensions.expansion
 			else if (code == "status_change")
 			{
 				var current:DownloadState = context.call("getDownloadState") as DownloadState;
-				
+
 				if (DownloaderClientState.COMPLETED == current.state)
 				{
 					dispatchEvent(new DownloadCompleteEvent());
@@ -178,21 +178,21 @@ package eu.alebianco.air.extensions.expansion
 			}
 			else if (code == "complete")
 			{
-				dispatchEvent(new ExtractionCompleteEvent());	
+				dispatchEvent(new ExtractionCompleteEvent());
 			}
 			else if (code == "error")
 			{
 				dispatchEvent(new ExtractionErrorEvent());
 			}
 		}
-		
+
 		public function setupMarketSecurity(key:String, salt:Vector.<int>):void
 		{
 			if (status & STATUS_SECURITY != 0)
 			{
 				throw new IllegalOperationError("Operation already setup.");
 			}
-			
+
 			var result:Boolean = context.call("setMarketSecurity", key, salt);
 			if (result != true)
 			{
@@ -203,7 +203,7 @@ package eu.alebianco.air.extensions.expansion
 				status |= STATUS_SECURITY;
 			}
 		}
-		
+
 		public function addRequiredExpansion(file:ExpansionFile):void
 		{
 			requiresMap.add(file);
@@ -235,29 +235,29 @@ package eu.alebianco.air.extensions.expansion
 				status &= ~STATUS_EXPANSIONS;
 			}
 		}
-		
+
 		public function hasExpansionFiles():Boolean
 		{
 			checkStatus();
 			return context.call("hasExpansionFiles", requiresMap.expansions);
 		}
-		
+
 		public function download():void
 		{
 			checkStatus();
 			context.call("downloadExpansions");
 		}
-		
+
 		public function showWiFiSettings():void
 		{
 			context.call("showWiFiSettings");
 		}
-		
+
 		public function authorizeMobileDownload():void
 		{
 			context.call("authorizeMobileDownload");
 		}
-		
+
 		public function pause():void
 		{
 			context.call("pauseDownload");
@@ -270,18 +270,18 @@ package eu.alebianco.air.extensions.expansion
 		{
 			context.call("cancelDownload");
 		}
-		
+
 		public function unzip(path:String, overwrite:Boolean = false):void
 		{
 			context.call("unzipExpansionContent", path, requiresMap.expansions, overwrite);
 		}
-		
+
 		private function checkStatus():void
 		{
 			if ((status & STATUS_READY) != STATUS_READY)
 			{
 				var message:String = "";
-				
+
 				switch(true)
 				{
 					case (status & STATUS_SECURITY) == 0:
@@ -289,14 +289,14 @@ package eu.alebianco.air.extensions.expansion
 						message = "You havent configured the market security. Plase call setupMarketSecurity() to setup your data.";
 						break;
 					}
-						
+
 					case (status & STATUS_EXPANSIONS) == 0:
 					{
 						message = "You haven't required any expansion file, so why bothering to use this extension at all?";
 						break;
 					}
 				}
-				
+
 				throw new IllegalOperationError(message);
 			}
 		}
